@@ -2,14 +2,7 @@ import pymysql
 import csv
 from db_conn import *
 
-# 테스트용
-def printFIle(rdr):
-    i = 0
-    for row in rdr:
-        print(row)
-        i+=1
-        if i==10 :
-            break
+
  
 
 # movie_info에 데이터 입력
@@ -35,7 +28,7 @@ def create_movie_info(data):
             print(f"Skipped row due to error: {e}")
             print("Row was:", row)
         i += 1
-        print("%d rows" %i)
+        print("%d rows" %i)     #테스트용
         
         if i % 10000 == 0:
             cur.executemany(insert_sql, rows)   # rows는 tuple 리스트임
@@ -43,9 +36,9 @@ def create_movie_info(data):
             print("%d rows" %i)
             rows = []
         
-        if rows:        # 남은 데이터 삽입
-            cur.executemany(insert_sql, rows)
-            con.commit()
+    if rows:        # 남은 데이터 삽입
+        cur.executemany(insert_sql, rows)
+        con.commit()
         
     print("insertion into table \'movie_info\' succeeded.")
     close_db(con, cur)
@@ -145,14 +138,77 @@ def create_genre(data):
     con.commit()
     print("insertion into table \'genre\' succeeded.")
     close_db(con, cur)
+    
+#-----------------------------------------------------------
+# movie_country에 데이터 입력
+def create_movie_country(data):
+    con, cur = open_db()
+    rows = []
+    i = 0
+
+    insert_sql = """
+        insert into movie_country(country_id, movie_id) values (%s, %s)
+    """
+    get_cid_sql = """
+        select country_id from country where country=%s
+    """
+    get_mid_sql = """
+        select movie_id from movie_info where title_kr=%s
+    """
+    for row in data:
+        try:
+            countries = data_cleansing(row[3])
+            title_kr = row[1]
+            # mid 가져오기
+            cur.execute(get_mid_sql, (title_kr,))
+            mid = cur.fetchone()
+            if not mid:
+                continue
+            movie_id = mid["movie_id"] if isinstance(mid, dict) else mid[0]
+            
+            # 국가마다 cid 조회 후 관계 추가
+            for country in countries:
+                cur.execute(get_cid_sql, (country.strip(),))
+                cid = cur.fetchone()
+                if not cid:
+                    continue
+                country_id = cid["country_id"] if isinstance(cid, dict) else cid[0]
+                
+                rows.append((country_id, movie_id))
+            
+            i += 1
+            print("%d rows" % i)  # 테스트용
+            
+            if i % 10000 == 0:
+                cur.executemany(insert_sql, rows)  # rows는 tuple 리스트임
+                con.commit()
+                print("%d rows" % i)
+                rows = []
+        except Exception as e:
+            print(f"Skipped row due to error: {e}")
+            print("Row was:", row)
+    if rows:  # 남은 데이터 삽입
+        cur.executemany(insert_sql, rows)
+        con.commit()
+    
+    print("insertion into table \'movie_country\' succeeded.")
+    close_db(con, cur)
 
 if __name__ == '__main__':
-    f = open("test.csv", encoding="utf-8")
+    f = open("test.csv", encoding="utf-8")  # 테스트용
     # f1 = open("list1.csv")
     # f2 = open("list2.csv")
     
-    data = list(csv.reader(f))
+    data = list(csv.reader(f))  # 테스트용
+    # data = list(csv.reader(f1))
+    create_movie_info(data[:])
+    create_country(data[:])
+    create_production(data[:])
+    create_director(data[:])
+    create_genre(data[:])
     
+
+    # data = list(csv.reader(f2))
     create_movie_info(data[:])
     create_country(data[:])
     create_production(data[:])

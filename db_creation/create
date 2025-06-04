@@ -1,5 +1,5 @@
 sql=""""
-create table Movie(
+create table movie_info(
     movie_id int primary key auto_increment,
     title_kr varchar(100) not null,
     title_en varchar(100),

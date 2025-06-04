@@ -1,0 +1,59 @@
+sql=""""
+create table Movie(
+    movie_id int primary key auto_increment,
+    title_kr varchar(100) not null,
+    title_en varchar(100),
+    year int,
+    type varchar(20),
+    status varchar(20)
+);
+
+create table Country(
+    country_id int primary key auto_increment,
+    country varchar(50)
+);
+
+create table Director(
+director_id int primary key auto_increment,
+director varchar(50)
+);
+
+create table Genre(
+genre_id int primary key auto_increment,
+genre varchar(50)
+);
+
+create table Production(
+production_id int primary key auto_increment,
+production varchar(50)
+);
+
+create table Movie_Country(
+country_id int,
+movie_id int,
+foreign key(country_id) references Country(country_id) on delete cascade,
+foreign key(movie_id) references Movie(movie_id) on delete cascade
+);
+
+create table Movie_Director(
+director_id int,
+movie_id int,
+foreign key(director_id) references Director(director_id) on delete cascade,
+foreign key(movie_id) references Movie(movie_id) on delete cascade
+);
+
+create table Movie_Genre(
+genre_id int,
+movie_id int,
+foreign key(genre_id) references Genre(genre_id) on delete cascade,
+foreign key(movie_id) references Movie(movie_id) on delete cascade
+);
+
+create table Movie_Production(
+production_id int,
+movie_id int,
+foreign key(production_id) references Production(production_id) on delete cascade,
+foreign key(movie_id) references Movie(movie_id) on delete cascade
+);
+
+"""

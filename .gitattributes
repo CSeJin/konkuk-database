@@ -1,0 +1,22 @@
+# Python 파일은 항상 LF 사용
+*.py text eol=lf
+
+# Shell scripts, config files도 LF 사용
+*.sh text eol=lf
+*.conf text eol=lf
+*.ini text eol=lf
+
+# Markdown, JSON 등 문서 형식도 LF
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Windows에서 실행되는 배치파일은 CRLF 유지
+*.bat text eol=crlf
+
+# 이미지/바이너리 파일은 줄바꿈 처리 안 함
+*.jpg binary
+*.png binary
+*.gif binary
+*.pdf binary

@@ -1,59 +1,83 @@
 sql=""""
+-- 삽입 에러 시 테이블 삭제하고 다시 넣어야 함(auto_increment)
+drop table movie_country;
+drop table movie_genre;
+drop table movie_director;
+drop table movie_production;
+drop table country;
+drop table director;
+drop table genre;
+drop table production;
+drop table movie_info;
+
+-- 테이블 생성
 create table movie_info(
     movie_id int primary key auto_increment,
-    title_kr varchar(100) not null,
-    title_en varchar(100),
+    title_kr varchar(255) not null,
+    title_en varchar(255),
     year int,
-    type varchar(20),
-    status varchar(20)
+    type varchar(255),
+    status varchar(255)
 );
 
 create table Country(
     country_id int primary key auto_increment,
-    country varchar(50)
+    country varchar(255)
 );
 
 create table Director(
 director_id int primary key auto_increment,
-director varchar(50)
+director varchar(255)
 );
 
 create table Genre(
 genre_id int primary key auto_increment,
-genre varchar(50)
+genre varchar(255)
 );
 
 create table Production(
 production_id int primary key auto_increment,
-production varchar(50)
+production varchar(255)
 );
 
 create table Movie_Country(
 country_id int,
 movie_id int,
 foreign key(country_id) references Country(country_id) on delete cascade,
-foreign key(movie_id) references Movie(movie_id) on delete cascade
+foreign key(movie_id) references movie_info(movie_id) on delete cascade
 );
 
 create table Movie_Director(
 director_id int,
 movie_id int,
 foreign key(director_id) references Director(director_id) on delete cascade,
-foreign key(movie_id) references Movie(movie_id) on delete cascade
+foreign key(movie_id) references movie_info(movie_id) on delete cascade
 );
 
 create table Movie_Genre(
 genre_id int,
 movie_id int,
 foreign key(genre_id) references Genre(genre_id) on delete cascade,
-foreign key(movie_id) references Movie(movie_id) on delete cascade
+foreign key(movie_id) references movie_info(movie_id) on delete cascade
 );
 
 create table Movie_Production(
 production_id int,
 movie_id int,
 foreign key(production_id) references Production(production_id) on delete cascade,
-foreign key(movie_id) references Movie(movie_id) on delete cascade
+foreign key(movie_id) references movie_info(movie_id) on delete cascade
 );
+
+-- 삽입 확인
+select * from movie_info;
+select max(movie_id) from movie_info;   -- 111750
+select * from country;
+select * from director;
+select * from genre;
+select * from production;
+select * from movie_country;
+select * from movie_genre;
+select * from movie_director;
+select * from movie_production;
 
 """

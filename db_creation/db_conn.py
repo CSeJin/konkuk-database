@@ -5,8 +5,8 @@ from pymysql.constants.CLIENT import MULTI_STATEMENTS
 
 def open_db(dbname='movie'):
     conn = pymysql.connect(host='localhost',
-                           user='root',
-                           passwd='Mchltpwls1029!',
+                           user='db_user',
+                           passwd='db_user',
                            db=dbname,
                            client_flag=MULTI_STATEMENTS)
     cur = conn.cursor(pymysql.cursors.DictCursor)

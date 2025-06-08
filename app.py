@@ -4,6 +4,9 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+@app.route('/movies_page')
+def movies_page():
+    return render_template('movies.html')
 
 # 영화명검색(일부)
 @app.route('/movies/search',

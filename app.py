@@ -8,17 +8,22 @@ app = Flask(__name__)
 def movies_page():
     return render_template('movies.html')
 
-# 영화명검색(일부)
-@app.route('/movies/search',
+#영화명컴색(일부)
+@app.route('/movies/title_search_result',
            methods=['GET'])
-def search_movies():
-    title = request.args.get('title')
-    conn, cur = open_db()
-    query = "select * from Movie_info where title_kr like %s or title_en like %s"
-    cur.execute(query, (f'%{title}%',))
-    result = cur.fetchall()
-    close_db(conn, cur)
+def search_movies_by_title():
+    title=request.args.get('title','')
+
+    conn, cur=open_db()
+
+    query ="""
+    select * from Movie_info where title_kr like %s
+    """
+    cur.execute(query,(f'%{title}%',))
+    result =cur.fetchall()
+    close_db(conn,cur)
     return jsonify(result)
+
 
 
 # 감독명
@@ -102,50 +107,62 @@ def get_movies_by_type(type_):
     return jsonify(result)
 
 
-# 장르별
-@app.route('/movies/genre/<genre>',
+#장르별
+@app.route('/movies/genre/<genres>',
            methods=['GET'])
-def get_movies_by_genre(genre):
-    conn, cur = open_db()
-    query = """
-    select m.* 
+def get_movies_by_genre(genres):
+    genre_list=[g.strip()for g in genres.split(',')if g.strip()]
+
+    conn,cur=open_db()
+
+    placeholders=','.join(['%s'] * len(genre_list))
+
+    query=f"""
+    select distinct m.* 
     from Movie_info m 
     join Movie_Genre mg on m.movie_id=mg.movie_id
     join Genre g on g.genre_id=mg.genre_id
-    where g.genre=%s
-"""
-    cur.execute(query, (genre,))
-    result = cur.fetchall()
-    close_db(conn, cur)
+    where g.genre in ({placeholders})
+    """
+    cur.execute(query,genre_list)
+    result=cur.fetchall()
+    close_db(conn,cur)
     return jsonify(result)
 
 
-# 국적별
-@app.route('/movies/country/<country>',
+#국적별
+@app.route('/movies/country/<countries>',
            methods=['GET'])
-def get_movies_by_country(country):
-    conn, cur = open_db()
-    query = """
-    select m.* 
+def get_movies_by_country(countries):
+    country_list=[c.strip()for c in countries.split(',')if c.strip()]
+
+    conn,cur=open_db()
+
+    placeholders=','.join(['%s'] * len(country_list))
+
+    query=f"""
+    select distinct m.* 
     from Movie_info m
     join Movie_country mc on m.movie_id=mc.movie_id
     join Country c on c.country_id= mc.country_id
-    where c.country=%s
+    where c.country in ({placeholders})
     """
-    cur.execute(query, (country,))
-    result = cur.fetchall()
-    close_db(conn, cur)
+    cur.execute(query,country_list)
+    result=cur.fetchall()
+    close_db(conn,cur)
     return jsonify(result)
 
-
-# 등급별 - 성인 장르일 경우 19세 이상
-@app.route('/movies/rating/<rating>',
+#등급별 - 성인 장르일 경우 19세 이상
+@app.route('/movies/rating/<ratings>',
            methods=['GET'])
-def get_movie_by_rating(rating):
-    conn, cur = open_db()
-    if rating == "19세 이상":
-        # '성인' 장르인 영화만 필터링
-        query = """
+def get_movie_by_rating(ratings):
+    rating_list=[r.strip()for r in ratings.split(',')if r.strip()]
+
+    conn,cur=open_db()
+
+    if "19세 이상" in rating_list:
+ #'성인' 장르인 영화만 필터링
+        query="""
         select m.* 
         from Movie_info m
         join Movie_Genre mg on m.movie_id=mg.movie_id
@@ -154,20 +171,27 @@ def get_movie_by_rating(rating):
         """
         cur.execute(query)
     else:
-        query = "select * from Movie_info where status=%s"
-        cur.execute(query, (rating,))
-    
-    result = cur.fetchall()
-    close_db(conn, cur)
+        placeholders=','.join(['%s'] * len(rating_list))
+
+        query=f"select * from Movie_info where rating in({placeholders})"
+        cur.execute(query,rating_list)
+
+    result=cur.fetchall()
+    close_db(conn,cur)
     return jsonify(result)
 
 
-# 대표국적별(대표국적=처음으로 등록된 국적)
-@app.route('/movies/primary_country/<country>',
+#대표국적별(대표국적=처음으로 등록된 국적)
+@app.route('/movies/primary_country/<countries>',
            methods=['GET'])
-def get_movies_by_primary_country(country):
-    conn, cur = open_db()
-    query = """
+def get_movies_by_primary_country(countries):
+    country_list=[c.strip()for c in countries.split(',')if c.strip()]
+
+    conn, cur=open_db()
+
+    placeholders=','.join(['%s'] * len(country_list))
+
+    query=f"""
     select m.*
     from Movie_info m
     join(
@@ -177,21 +201,22 @@ def get_movies_by_primary_country(country):
     )
     mc on m.movie_id=mc.movie_id
     join Country c on mc.primary_country_id=c.country_id
-    where c.country=%s
+    where c.country in ({placeholders})
     """
-    cur.execute(query, (country,))
-    result = cur.fetchall()
-    close_db(conn, cur)
+    cur.execute(query,country_list)
+    result=cur.fetchall()
+    close_db(conn,cur)
     return jsonify(result)
 
 
-# 인덱싱
+#인덱싱
 @app.route('/movies/title_index/<index>',
-           methods=['GET'])
+            methods=['GET'])
 def get_movies_by_title_index(index):
+
     conn, cur = open_db()
     
-    # 초성에 따른 한글 시작/끝 범위
+# 초성에 따른 한글 시작/끝 범위
     chosung_range = {
         'ㄱ': ('가', '나'),
         'ㄴ': ('나', '다'),
@@ -206,9 +231,9 @@ def get_movies_by_title_index(index):
         'ㅋ': ('카', '타'),
         'ㅌ': ('타', '파'),
         'ㅍ': ('파', '하'),
-        'ㅎ': ('하', '힣')
+        'ㅎ': ('하', '힣')  
     }
-    
+
     if index in chosung_range:
         start, end = chosung_range[index]
         query = """
@@ -222,7 +247,7 @@ def get_movies_by_title_index(index):
         cur.execute(query, (index.upper() + '%',))
     else:
         return jsonify([])
-    
+
     result = cur.fetchall()
     close_db(conn, cur)
     return jsonify(result)
@@ -276,6 +301,15 @@ def search():
     return jsonify(result)
 
 # 초기화, 정렬은 js로만 가능
+@app.route('/movies',
+           methods=['GET'])
+def get_all_movies():
+    conn,cur=open_db()
+    query="select * from Movie_info"
+    cur.execute(query)
+    result=cur.fetchall()
+    close_db(conn,cur)
+    return jsonify(result)
 
 # Flask
 if __name__ == '__main__':

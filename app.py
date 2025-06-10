@@ -15,9 +15,7 @@ def movies_page():
            methods=['GET'])
 def search_movies_by_title():
     title=request.args.get('title','')
-    query ="""
-    select * from Movie_info where title_kr like %s
-    """
+    query =f"select * from Movie_info where title_kr like {title} or title_en like {title}"
     return query
 
 # 감독명

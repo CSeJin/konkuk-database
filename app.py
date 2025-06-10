@@ -111,16 +111,21 @@ def get_movie_by_rating(ratings):
     if "19세 이상" in rating_list:
  #'성인' 장르인 영화만 필터링
         query="""
-        select m.* 
-        from Movie_info m
-        join Movie_Genre mg on m.movie_id=mg.movie_id
-        join Genre g on mg.genre_id=g.genre_id
-        where g.genre like '%성인%' 
+        select * 
+        from Movie_info
+        where movie_id in(
+        select movie_id
+        from Movie_Genre
+        where genre_id in(
+        select genre_id
+        from Genre
+        where genre like '%성인%')
+        ) 
         """
     else:
         placeholders=','.join(['%s'] * len(rating_list))
 
-        query=f"rating in({placeholders})"
+        query=f"select * from Movie_info where rating in({placeholders})"
 
     return query
 

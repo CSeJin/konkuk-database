@@ -11,25 +11,24 @@ def movies_page():
 
 
 def _build_conditions():
-    """URL 파라미터에 따라 WHERE 절 조각들과 바인딩 값을 모아서 반환"""
     args = request.args
     conds = []
     params = []
 
-    # 1) 영화명 (부분일치)
+    # 영화명
     title = args.get('sMovName', '').strip()
     if title:
         conds.append("(mi.title_kr LIKE %s OR mi.title_en LIKE %s)")
         like = f"%{title}%"
         params += [like, like]
 
-    # 2) 감독명 (부분일치)
+    # 감독명
     director = args.get('sDirector', '').strip()
     if director:
         conds.append("d.director LIKE %s")
         params.append(f"%{director}%")
 
-    # 3) 제작연도 BETWEEN
+    # 제작연도
     y1 = args.get('sPrdtYearS', '').strip()
     y2 = args.get('sPrdtYearE', '').strip()
     if y1 or y2:
@@ -40,8 +39,7 @@ def _build_conditions():
         conds.append("mi.year BETWEEN %s AND %s")
         params += [y1, y2]
 
-
-    # 5) 제작상태, 유형, 장르, 국적, 대표국적
+    # 제작상태, 유형, 장르, 국가
     for field, col in [
         ('sPrdtStatStr', 'mi.status'),
         ('sMovTypeStr', 'mi.type'),
@@ -50,11 +48,11 @@ def _build_conditions():
     ]:
         vals = [v.strip() for v in args.get(field, '').split(',') if v.strip()]
         if vals:
-            ph = ','.join(['%s'] * len(vals))
-            conds.append(f"{col} IN ({ph})")
+            placeholders = ','.join(['%s'] * len(vals))
+            conds.append(f"{col} IN ({placeholders})")
             params += vals
 
-    # 6) 인덱싱
+    # 영화명 인덱싱 (초성/알파벳)
     idx = args.get('chosung', '').strip()
     if idx:
         chosung_map = {
@@ -77,13 +75,13 @@ def _build_conditions():
 
 @app.route('/movies/searchMovieList', methods=['GET'])
 def search_movie_list():
-    # 1) 기본 SELECT + JOIN
     sql = """
-    SELECT mi.movie_id, mi.title_kr, mi.title_en, mi.year, mi.type, mi.status,
-           GROUP_CONCAT(DISTINCT c.country ORDER BY c.country SEPARATOR ', ') AS nation_name,
-           GROUP_CONCAT(DISTINCT g.genre ORDER BY g.genre SEPARATOR ', ') AS genres,
-           GROUP_CONCAT(DISTINCT d.director ORDER BY d.director SEPARATOR ', ') AS director,
-           GROUP_CONCAT(DISTINCT p.company_name ORDER BY p.company_name SEPARATOR ', ') AS company_name
+    SELECT 
+        mi.movie_id, mi.title_kr, mi.title_en, mi.year, mi.type, mi.status,
+        GROUP_CONCAT(DISTINCT c.country ORDER BY c.country SEPARATOR ', ') AS nation_name,
+        GROUP_CONCAT(DISTINCT g.genre ORDER BY g.genre SEPARATOR ', ') AS genres,
+        GROUP_CONCAT(DISTINCT d.director ORDER BY d.director SEPARATOR ', ') AS director,
+        GROUP_CONCAT(DISTINCT p.production ORDER BY p.production SEPARATOR ', ') AS production
     FROM movie_info mi
     LEFT JOIN movie_country mc ON mi.movie_id = mc.movie_id
     LEFT JOIN country c ON mc.country_id = c.country_id
@@ -92,31 +90,37 @@ def search_movie_list():
     LEFT JOIN movie_director md ON mi.movie_id = md.movie_id
     LEFT JOIN director d ON md.director_id = d.director_id
     LEFT JOIN movie_production mp ON mi.movie_id = mp.movie_id
-    LEFT JOIN production p ON mp.company_id = p.company_id
+    LEFT JOIN production p ON mp.production_id = p.production_id
     """
 
-    # 2) 조건절 처리
+    # 조건 추가
     conds, params = _build_conditions()
     if conds:
         sql += " WHERE " + " AND ".join(conds)
 
+    # 그룹핑
     sql += " GROUP BY mi.movie_id"
 
-    # 3) DB 실행
+    # 실행
     conn, cur = open_db()
     cur.execute(sql, params)
     rows = cur.fetchall()
     cols = [d[0] for d in cur.description]
     close_db(conn, cur)
 
-    result = [dict(zip(cols, r)) for r in rows]
+    # 결과 반환
+    result = rows
+    # result = [dict(zip(cols, r)) for r in rows]
+    # print("[rows]", rows[:3])
+    # print("[cols]", cols)
+    # print(result)
     return jsonify(result)
 
 
 @app.route('/movies', methods=['GET'])
 def get_all_movies():
     conn, cur = open_db()
-    cur.execute("SELECT * FROM Movie_info")
+    cur.execute("SELECT * FROM movie_info")
     rows = cur.fetchall()
     cols = [d[0] for d in cur.description]
     close_db(conn, cur)

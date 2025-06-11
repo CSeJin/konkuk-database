@@ -111,8 +111,7 @@
 
     <!-- 검색 폼 -->
     <div class="f_sch">
-        <form id="searchForm" name="searchForm" action="searchMovieList.do" method="post">
-            <input type="hidden" name="CSRFToken" value="token">
+        <form id="searchForm" name="searchForm" action="/movies/searchMovieList" method="get">
             <input type="hidden" name="curPage" value="1">
             <input type="hidden" name="searchType" value="" autocomplete="off">
             <input type="hidden" name="point" value="" autocomplete="off">

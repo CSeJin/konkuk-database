@@ -10,217 +10,118 @@ def movies_page():
     return render_template('movies.html')
 
 
-# 영화명컴색(일부)
-@app.route('/movies/searchMovieList',
-           methods=['GET'])
-def search_movies_by_title():
-    title=request.args.get('title','')
-    query =f"select * from Movie_info where title_kr like {title} or title_en like {title}"
-    return query
+def _build_conditions():
+    """URL 파라미터에 따라 WHERE 절 조각들과 바인딩 값을 모아서 반환"""
+    args = request.args
+    conds = []
+    params = []
 
-# 감독명
-@app.route('/movies/director/<director>',
-           methods=['GET'])
-def get_movies_by_director():
-    director = request.args.get('director')
-    # conn, cur = open_db()
-    query = (f" (select mid from movie_director\n"
-             f"     where (select did from director where director like {director})")
-    # cur.execute(query, (f'%{director}%',))
-    # result = cur.fetchall()
-    # close_db(conn, cur)
-    return query
+    # 1) 영화명 (부분일치)
+    title = args.get('sMovName', '').strip()
+    if title:
+        conds.append("(mi.title_kr LIKE %s OR mi.title_en LIKE %s)")
+        like = f"%{title}%"
+        params += [like, like]
 
+    # 2) 감독명 (부분일치)
+    director = args.get('sDirector', '').strip()
+    if director:
+        conds.append("d.director LIKE %s")
+        params.append(f"%{director}%")
 
-# 제작연도
-@app.route('/movies/year/<year>',
-           methods=['GET'])
-def get_movies_by_year():
-    y1 = request.args.get('year1')
-    y2 = request.args.get('year2')
-    if y2 is None:
-        y2 = datetime.today().year
-    # conn, cur = open_db()
-    query = f"where year >= {y1} and year <= {y2}"
-    # cur.execute(query, (f'%{y1}%', f'%{y2}%',))
-    # result = cur.fetchall()
-    # close_db(conn, cur)
-    return query
+    # 3) 제작연도 BETWEEN
+    y1 = args.get('sPrdtYearS', '').strip()
+    y2 = args.get('sPrdtYearE', '').strip()
+    if y1 or y2:
+        if not y1:
+            y1 = '0'
+        if not y2:
+            y2 = str(datetime.today().year)
+        conds.append("mi.year BETWEEN %s AND %s")
+        params += [y1, y2]
 
 
-# 제작상태
-@app.route('/movies/status/<status>',
-           methods=['GET'])
-def get_movies_by_status(status):
-    # conn, cur = open_db()
-    status_list = [t.strip() for t in status.split(',') if t.strip()]
-    # 동적 IN 절
-    placeholders = ','.join(['%s'] * len(status_list))
-    query = f"status IN ({placeholders})\n"
-    # cur.execute(query, status_list)
-    # result = cur.fetchall()
-    # close_db(conn, cur)
-    return query
+    # 5) 제작상태, 유형, 장르, 국적, 대표국적
+    for field, col in [
+        ('sPrdtStatStr', 'mi.status'),
+        ('sMovTypeStr', 'mi.type'),
+        ('sGenreStr', 'g.genre'),
+        ('sNationStr', 'c.country')
+    ]:
+        vals = [v.strip() for v in args.get(field, '').split(',') if v.strip()]
+        if vals:
+            ph = ','.join(['%s'] * len(vals))
+            conds.append(f"{col} IN ({ph})")
+            params += vals
+
+    # 6) 인덱싱
+    idx = args.get('chosung', '').strip()
+    if idx:
+        chosung_map = {
+            'ㄱ': ('가', '나'), 'ㄴ': ('나', '다'), 'ㄷ': ('다', '라'),
+            'ㄹ': ('라', '마'), 'ㅁ': ('마', '바'), 'ㅂ': ('바', '사'),
+            'ㅅ': ('사', '아'), 'ㅇ': ('아', '자'), 'ㅈ': ('자', '차'),
+            'ㅊ': ('차', '카'), 'ㅋ': ('카', '타'), 'ㅌ': ('타', '파'),
+            'ㅍ': ('파', '하'), 'ㅎ': ('하', '힣'),
+        }
+        if idx in chosung_map:
+            start, end = chosung_map[idx]
+            conds.append("mi.title_kr >= %s AND mi.title_kr < %s")
+            params += [start, end]
+        elif idx.isalpha():
+            conds.append("mi.title_en LIKE %s")
+            params.append(f"{idx.upper()}%")
+
+    return conds, params
 
 
-# 제작상태
-@app.route('/movies/type/<type>',
-           methods=['GET'])
-def get_movies_by_type(type_):
+@app.route('/movies/searchMovieList', methods=['GET'])
+def search_movie_list():
+    # 1) 기본 SELECT + JOIN
+    sql = """
+    SELECT mi.movie_id, mi.title_kr, mi.title_en, mi.year, mi.type, mi.status,
+           GROUP_CONCAT(DISTINCT c.country ORDER BY c.country SEPARATOR ', ') AS nation_name,
+           GROUP_CONCAT(DISTINCT g.genre ORDER BY g.genre SEPARATOR ', ') AS genres,
+           GROUP_CONCAT(DISTINCT d.director ORDER BY d.director SEPARATOR ', ') AS director,
+           GROUP_CONCAT(DISTINCT p.company_name ORDER BY p.company_name SEPARATOR ', ') AS company_name
+    FROM movie_info mi
+    LEFT JOIN movie_country mc ON mi.movie_id = mc.movie_id
+    LEFT JOIN country c ON mc.country_id = c.country_id
+    LEFT JOIN movie_genre mg ON mi.movie_id = mg.movie_id
+    LEFT JOIN genre g ON mg.genre_id = g.genre_id
+    LEFT JOIN movie_director md ON mi.movie_id = md.movie_id
+    LEFT JOIN director d ON md.director_id = d.director_id
+    LEFT JOIN movie_production mp ON mi.movie_id = mp.movie_id
+    LEFT JOIN production p ON mp.company_id = p.company_id
+    """
+
+    # 2) 조건절 처리
+    conds, params = _build_conditions()
+    if conds:
+        sql += " WHERE " + " AND ".join(conds)
+
+    sql += " GROUP BY mi.movie_id"
+
+    # 3) DB 실행
     conn, cur = open_db()
-    type_list = [t.strip() for t in type_.split(',') if t.strip()]
-    # 동적 IN 절
-    placeholders = ','.join(['%s'] * len(type_list))
-    query = f"WHERE type IN ({placeholders})"
-    # cur.execute(query, type_list)
-    # result = cur.fetchall()
-    # close_db(conn, cur)
-    return query
-
-
-#장르별
-@app.route('/movies/genre/<genres>',
-           methods=['GET'])
-def get_movies_by_genre(genres):
-    genre_list=[g.strip()for g in genres.split(',')if g.strip()]
-
-    #conn,cur=open_db()
-
-    placeholders=','.join(['%s'] * len(genre_list))
-
-    query=f"where genres in ({placeholders})"
-    return query
-
-#국적별
-@app.route('/movies/country/<countries>',
-           methods=['GET'])
-def get_movies_by_country(countries):
-    country_list=[c.strip()for c in countries.split(',')if c.strip()]
-
-    placeholders=','.join(['%s'] * len(country_list))
-
-    query=f"where countries in ({placeholders})"
-    return query
-
-#등급별 - 성인 장르일 경우 19세 이상
-@app.route('/movies/rating/<ratings>',
-           methods=['GET'])
-def get_movie_by_rating(ratings):
-    rating_list=[r.strip()for r in ratings.split(',')if r.strip()]
-
-    if "19세 이상" in rating_list:
- #'성인' 장르인 영화만 필터링
-        query="""
-        select * 
-        from Movie_info
-        where movie_id in(
-        select movie_id
-        from Movie_Genre
-        where genre_id in(
-        select genre_id
-        from Genre
-        where genre like '%성인%')
-        ) 
-        """
-    else:
-        placeholders=','.join(['%s'] * len(rating_list))
-
-        query=f"select * from Movie_info where rating in({placeholders})"
-
-    return query
-
-#대표국적별(대표국적=처음으로 등록된 국적)
-@app.route('/movies/primary_country/<countries>',
-            methods=['GET'])
-def get_movies_by_primary_country(countries):
-    country_list = [c.strip() for c in countries.split(',') if c.strip()]
-
-    placeholders = ','.join(['%s'] * len(country_list))
-
-    query = f"primary_country IN ({placeholders})"
-
-    return query
-
-#인덱싱
-@app.route('/movies/title_index/<index>',
-            methods=['GET'])
-def get_movies_by_title_index(index):
-
-# 초성에 따른 한글 시작/끝 범위
-    chosung_range = {
-        'ㄱ': ('가', '나'),
-        'ㄴ': ('나', '다'),
-        'ㄷ': ('다', '라'),
-        'ㄹ': ('라', '마'),
-        'ㅁ': ('마', '바'),
-        'ㅂ': ('바', '사'),
-        'ㅅ': ('사', '아'),
-        'ㅇ': ('아', '자'),
-        'ㅈ': ('자', '차'),
-        'ㅊ': ('차', '카'),
-        'ㅋ': ('카', '타'),
-        'ㅌ': ('타', '파'),
-        'ㅍ': ('파', '하'),
-        'ㅎ': ('하', '힣')
-    }
-
-    if  index in chosung_range:
-        start, end = chosung_range[index]
-        query = f"title_kr >= '{start}' AND title_kr < '{end}'"
-        return query
-
-    elif index.isalpha():  # A〜Z
-        query = f"title_en LIKE '{index.upper()}%'"
-        return query
-
-
-# 조회
-@app.route('/movies/searchMovieList',
-           methods=['GET'])
-def search():
-    # pass
-    # 각 조회기능별 함수는 get한 값을 "where ~" 형식으로 조건만 담아 return
-    # 각 변수에 return된 값을 담아 값이 있으면 search_sql에 join
-    query = "select * from movie_info"
-    condition = [search_movies_by_title(),
-                 get_movies_by_director(),
-                 get_movies_by_year(),
-                 get_movies_by_status(),
-                 get_movies_by_type(),
-                 get_movies_by_genre(),
-                 get_movies_by_country(),
-                 get_movie_by_rating(),
-                 get_movies_by_primary_country(),
-                 get_movies_by_title_index(),
-                 ]
-
-    for i in condition:
-        if condition[i] == "":
-            continue
-        if i == 0:
-            query += " where " + condition[i]
-        query += " and " + condition[i]
-
-    conn, cur = open_db()
-    cur.execute(query)
-    result = cur.fetchall()
-
+    cur.execute(sql, params)
+    rows = cur.fetchall()
+    cols = [d[0] for d in cur.description]
     close_db(conn, cur)
+
+    result = [dict(zip(cols, r)) for r in rows]
     return jsonify(result)
 
 
-# 초기화, 정렬은 js로만 가능
-@app.route('/movies',
-           methods=['GET'])
+@app.route('/movies', methods=['GET'])
 def get_all_movies():
     conn, cur = open_db()
-    query = "select * from Movie_info"
-    cur.execute(query)
-    result = cur.fetchall()
+    cur.execute("SELECT * FROM Movie_info")
+    rows = cur.fetchall()
+    cols = [d[0] for d in cur.description]
     close_db(conn, cur)
-    return jsonify(result)
+    return jsonify([dict(zip(cols, r)) for r in rows])
 
 
-# Flask
 if __name__ == '__main__':
     app.run(debug=True)

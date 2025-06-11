@@ -11,7 +11,7 @@ def movies_page():
 
 
 # 영화명컴색(일부)
-@app.route('/movies/title_search_result',
+@app.route('/movies/searchMovieList',
            methods=['GET'])
 def search_movies_by_title():
     title=request.args.get('title','')
@@ -138,14 +138,14 @@ def get_movies_by_primary_country(countries):
     placeholders = ','.join(['%s'] * len(country_list))
 
     query = f"primary_country IN ({placeholders})"
-    
+
     return query
 
 #인덱싱
 @app.route('/movies/title_index/<index>',
             methods=['GET'])
 def get_movies_by_title_index(index):
-    
+
 # 초성에 따른 한글 시작/끝 범위
     chosung_range = {
         'ㄱ': ('가', '나'),
@@ -161,14 +161,14 @@ def get_movies_by_title_index(index):
         'ㅋ': ('카', '타'),
         'ㅌ': ('타', '파'),
         'ㅍ': ('파', '하'),
-        'ㅎ': ('하', '힣')  
+        'ㅎ': ('하', '힣')
     }
 
     if  index in chosung_range:
         start, end = chosung_range[index]
         query = f"title_kr >= '{start}' AND title_kr < '{end}'"
         return query
-    
+
     elif index.isalpha():  # A〜Z
         query = f"title_en LIKE '{index.upper()}%'"
         return query
@@ -193,18 +193,18 @@ def search():
                  get_movies_by_primary_country(),
                  get_movies_by_title_index(),
                  ]
-    
+
     for i in condition:
         if condition[i] == "":
             continue
         if i == 0:
             query += " where " + condition[i]
         query += " and " + condition[i]
-    
+
     conn, cur = open_db()
     cur.execute(query)
     result = cur.fetchall()
-    
+
     close_db(conn, cur)
     return jsonify(result)
 

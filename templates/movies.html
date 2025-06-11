@@ -3,397 +3,107 @@
 <head>
     <meta charset="UTF-8"/>
     <title>영화정보 검색</title>
-    <link rel="stylesheet"
-          href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-    <link rel="stylesheet" type="text/css" href="/static/style.css">
 
-    <style type="text/css"> .title a {
-	display: inline;
-	float: none;
-}
-    </style>
     <!-- jQuery, jQuery UI -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <!-- 여러분이 직접 작성한 script.js -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"/>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
 
-    <script type="text/javascript">
 
-	//페이징
-	function goPage(page) {
-		/* var pForm = document.pagingForm;
-		pForm.curPage.value = page;
-		pForm.submit(); */
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- style.css 또는 HTML <head> 맨 아래에 추가 -->
+    <style>
+  /* ─────────────────────────────────────────────────────────
+   1) jQuery UI 다이얼로그 닫기 버튼을 × 로 교체
+───────────────────────────────────────────────────────── */
+.ui-dialog .ui-dialog-titlebar-close {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+/* 아이콘 스팬 숨기기 */
+.ui-dialog .ui-dialog-titlebar-close .ui-icon,
+.ui-dialog .ui-dialog-titlebar-close .ui-button-icon-space {
+  display: none !important;
+}
+/* × 표시 삽입 */
+.ui-dialog .ui-dialog-titlebar-close:before {
+  content: "×" !important;
+  font-size: 1.4em;
+  line-height: 1;
+  color: #333;
+}
 
-		$("[name=curPage]").val(page);
+/* ─────────────────────────────────────────────────────────
+   2) 다이얼로그 제목 색상 변경
+───────────────────────────────────────────────────────── */
+.ui-dialog .ui-dialog-title {
+  color: #3366ff !important;   /* 원하시는 파란색으로 */
+  font-weight: bold !important;
+}
 
-		commSearchAjax();
-	}
-	// 초성 검색
-	function fn_chosung_search(chosung) {
-		var sForm = document.searchForm;
-		if (chosung) {
-			sForm.chosung.value = chosung;
-		} else {
-			sForm.chosung.value = '';
-		}
-		fn_searchList();
-	}
-	function fn_chosung(Obj) {
-		fn_chosung_search(Obj);
-	};
-	//조회 버튼 검색
-	function fn_searchList(type) {
-		var sForm = document.searchForm;
-		sForm.searchType.value = type;
-		sForm.curPage.value = "1";
-		moreCheck();
-		var n = $("[name=sNomal]").prop("checked")?"Y":"N";
-		var m = $("[name=sMulti]").prop("checked")?"Y":"N";
-		var i = $("[name=sIndie]").prop("checked")?"Y":"N";
-		$("[name=sMultiChk]").val(n+m+i);
-		if(n+m+i == "NNN"){
-			alert("영화구분은 한가지 이상 선택하셔야 조회 가능합니다.");
-			return false;분
-		}
-		if (type == 'excel') {
-			if (!confirm('많은 양의 데이터를 다운로드시 시간이 오래 걸릴 수 있습니다. 엑셀로 다운받으시겠습니까?'))
-				return false;
-			//			$(sForm).submitXls();
-			var act = $(sForm).attr("action");
-			$(sForm).attr("action", "/kobis/business/mast/mvie/searchMovieListXls.do");
-			sForm.submit();
-			$(sForm).attr("action", act);
-			sForm.searchType.value = '';
-			return false;
-		}
+/* ─────────────────────────────────────────────────────────
+   3) 전체 선택 체크박스 세로 중앙 정렬
+───────────────────────────────────────────────────────── */
+#layerPopup label[for="chkAllChkBox"] {
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 8px !important;
+}
+#layerPopup label[for="chkAllChkBox"] input {
+  margin-right: 6px !important;
+}
 
-		/* sForm.submit();
-		sForm.searchType.value = ''; */
+/* ─────────────────────────────────────────────────────────
+   4) 옵션 테이블 체크박스 세로 중앙 정렬
+───────────────────────────────────────────────────────── */
+#popupOptions tbody th,
+#popupOptions tbody td {
+  vertical-align: middle !important;
+}
+#popupOptions tbody th input[type="checkbox"] {
+  display: block !important;
+  margin: 0 auto !important;
+}
 
-		$("#searchForm").attr("action", "searchMovieList.do");
-		commSearchAjax();
+/* ─────────────────────────────────────────────────────────
+   5) 다이얼로그 그림자만 남기고 기본 테두리 제거
+───────────────────────────────────────────────────────── */
+.ui-dialog {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  border: none !important;
+}
 
-	}
-	$(function() {
-		//엔터검색
-		if(!$("#wrap").attr("class")== false){
-			if($("#wrap").attr("class").indexOf("admin")<0){
-				$("form").find(":text:enabled:not([readonly='readonly'])").each(function(){
-					$(this).keypress(function(event){
-						if(event.which=='13'){
-							if($('#pageIndex').val() != 'undefined') {
-								$('#pageIndex').val("1");
-							}
-							fn_searchList();
-						}
-					});
-				});
-			}
-		}
+/* ──────────────────────────────────
+   팝업 내용 스크롤
+────────────────────────────────── */
+.code-search-dialog .ui-dialog-content {
+  padding: 16px;          /* 원래 패딩 유지 */
+  max-height: 360px;      /* height - (헤더+버튼영역) 높이 */
+  overflow-y: auto;       /* 세로 스크롤 */
+}
 
-		//삭제 영화 스타일 설정
-		$(".del").find("td").css({
-			"color" : "red"
-		}).find("a").css({
-			"color" : "red"
-		});
-
-		$("#tmpDate").datepicker({
-			dateFormat: 'yy-mm-dd'
-		});
-		//초성검색 버튼 이벤트 등록
-		//상세검색 초기상태 레이어 펼치기 접기
-		//제작상태 멀티 조회
-		$("#sPrdtStatStr").click(function fn_openLayedPop(){
-			var opts = {
-	          'center' : false ,//가운데 정렬 아님
-	  		  'modal'  : true ,
-	          'searchname'  : '#sPrdtStatStr', //조회 조건, 이 컴포넌트 아래 위치
-	  		  'frmTy'  : 'codes:2202000000', //코드성 조회
-	  		  'height': '440',
-	  		  'width': '500',
-	  		  'seldata':$(this).siblings("[name='sPrdtStatCd']").map(function(){return $(this).val();}),
-	  		  'hideRep':true,
-	  		  onComplete: function(data){
-	  			$("#sPrdtStatStr").parents("div.tf_comm").find("input[name='sPrdtStatCd']").remove();
-	  			$("#sPrdtStatStr").val("");
-				  for(var i=0; i<data.length; i++){
-					  if(i!=0){
-						  $("#sPrdtStatStr").val($("#sPrdtStatStr").val()+",");
-					  }
-					  $("#sPrdtStatStr").val($("#sPrdtStatStr").val()+data[i].korNm);
-					  $("#sPrdtStatStr").parents("div.tf_comm").append("<input name='sPrdtStatCd' type='hidden' value='" + data[i].fullCd + "'/>");
-				  }
-	           }
-	      	};
-			$("#sPrdtStatStr").layerPopup(opts);
-		});
-		//영화유형 멀티 조회
-		$("#sMovTypeStr").click(function fn_openLayedPop(e){
-			var opts = {
-	          'center' : false ,//가운데 정렬 아님
-	  		  'modal'  : true ,
-	          'searchname'  : '#sMovTypeStr', //조회 조건, 이 컴포넌트 아래 위치
-	  		  'frmTy'  : 'codes:2201000000', //코드성 조회
-	  		  'height': '350',
-	  		  'width': '500',
-	  		  'seldata':$(this).siblings("[name='sMovTypeCd']").map(function(){return $(this).val();}),
-	  		  'hideRep':true,
-	  		  onComplete: function(data){
-	  			$("#sMovTypeStr").parents("div.tf_comm").find("input[name='sMovTypeCd']").remove();
-	  			$("#sMovTypeStr").val("");
-				  for(var i=0; i<data.length; i++){
-					  if(i!=0){
-						  $("#sMovTypeStr").val($("#sMovTypeStr").val()+",");
-					  }
-					  $("#sMovTypeStr").val($("#sMovTypeStr").val()+data[i].korNm);
-					  $("#sMovTypeStr").parents("div.tf_comm").append("<input name='sMovTypeCd' type='hidden' value='" + data[i].fullCd + "'/>");
-				  }
-	           }
-	      	};
-			$("#sMovTypeStr").layerPopup(opts);
-		});
-		//장르 멀티 조회
-		$("#sGenreStr").click(function fn_openLayedPop(e){
-			var selARR = new Array();
-			$(this).parents("div.tf_comm").find("[name='sGenreCd']").each(function(){
-				selARR.push( $(this).val());
-			});
-			var opts = {
-	          'center' : false ,//가운데 정렬 아님
-	  		  'modal'  : true ,
-	          'searchname'  : '#sGenreStr', //조회 조건, 이 컴포넌트 아래 위치
-	  		  'frmTy'  : 'codes:2205000000', //코드성 조회
-	  		  'height': '450',
-	  		  'width': '500',
-	  		  'seldata':$(this).siblings("[name='sGenreCd']").map(function(){return $(this).val();}),
-	  		  'hideRep':true,
-	  		  onComplete: function(data){
-	  			$("#sGenreStr").parents("div.tf_comm").find("input[name='sGenreCd']").remove();
-	  			$("#sGenreStr").val("");
-				  for(var i=0; i<data.length; i++){
-					  if(i!=0){
-						  $("#sGenreStr").val($("#sGenreStr").val()+",");
-					  }
-					  $("#sGenreStr").val($("#sGenreStr").val()+data[i].korNm);
-					  $("#sGenreStr").parents("div.tf_comm").append("<input name='sGenreCd' type='hidden' value='" + data[i].fullCd + "'/>");
-				  }
-	           }
-	      	};
-			$("#sGenreStr").layerPopup(opts);
-		});
-		//국적 멀티 조회
-		$("#sNationStr").click(function fn_openLayedPop(e){
-			var selARR = new Array();
-			$(this).parents("div.tf_comm").find("[name='sNationCd']").each(function(){
-				selARR.push( $(this).val());
-			});
-			var opts = {
-	          'center' : false ,//가운데 정렬 아님
-	  		  'modal'  : true ,
-	          'searchname'  : '#sNationStr', //조회 조건, 이 컴포넌트 아래 위치
-	  		  'frmTy'  : 'tcode:2203000000', //코드성 조회
-	  		  'height': '450',
-	  		  'width': '650',
-	  		  'seldata':selARR,
-	  		  'hideRep':true,
-	  		  onComplete: function(data){
-	  			$("#sNationStr").parents("div.tf_comm").find("input[name='sNationCd']").remove();
-	  			$("#sNationStr").val("");
-				  for(var i=0; i<data.length; i++){
-					  if(i!=0){
-						  $("#sNationStr").val($("#sNationStr").val()+",");
-					  }
-					  $("#sNationStr").val($("#sNationStr").val()+data[i].korNm);
-					  $("#sNationStr").parents("div.tf_comm").append("<input name='sNationCd' type='hidden' value='" + data[i].fullCd + "'/>");
-				  }
-	           }
-	      	};
-			$("#sNationStr").layerPopup(opts);
-		});
-		//대표국적 멀티 조회
-		$("#sRepNationStr").click(function fn_openLayedPop(e){
-			var opts = {
-	          'center' : false ,//가운데 정렬 아님
-	  		  'modal'  : true ,
-	          'searchname'  : '#sRepNationStr', //조회 조건, 이 컴포넌트 아래 위치
-	  		  'frmTy'  : 'tcode:2203000000', //코드성 조회
-	  		  'height': '450',
-	  		  'width': '650',
-	  		  'seldata':$(this).siblings("[name='sRepNationCd']").map(function(){return $(this).val();}),
-	  		  'hideRep':true,
-	  		  onComplete: function(data){
-	  			$("#sRepNationStr").parents("div.tf_comm").find("input[name='sRepNationCd']").remove();
-	  			$("#sRepNationStr").val("");
-				  for(var i=0; i<data.length; i++){
-					  if(i!=0){
-						  $("#sRepNationStr").val($("#sRepNationStr").val()+",");
-					  }
-					  $("#sRepNationStr").val($("#sRepNationStr").val()+data[i].korNm);
-					  $("#sRepNationStr").parents("div.tf_comm").append("<input name='sRepNationCd' type='hidden' value='" + data[i].fullCd + "'/>");
-				  }
-	           }
-	      	};
-			$("#sRepNationStr").layerPopup(opts);
-		});
-		// 포인트 검색 이벤트 등록
-		$("#per").click(); //초기 상테
-		$("#onoff li").find("img").each(function() { //포인트 검색 버튼에 이벤트 등록***************
-			$(this).click(function() {
-				document.searchForm.point.value = $(this).attr(
-						"id").replace('per', '');
-				fn_searchList();
-			});
-		});
-
-		// 검색엔진에서 코드값이 넘어오면 바로 팝업 띄움
-
-
-			$("input[type=checkbox]").prop("checked", true);
-
-		$(".fr .list_sort li a").each(function() { //포인트 검색 버튼에 이벤트 등록
-			$(this).click(function() {
-				document.searchForm.point.value = $(this)
-						.text().replace('%', '').replace('전체',
-								'');
-				fn_searchList();
-			});
-		});
-	});
-
-	// 검색조건 초기화
-	function fn_searchReset() {
-		var $frm = $(document.searchForm);
-		$frm.find("input:visible").val("");
-		$frm.find("[name='sPrdtStatCd']").remove();
-		$frm.find("[name='sMovTypeCd']").remove();
-		$frm.find("[name='sGenreCd']").remove();
-		$frm.find("[name='sGradeCd']").remove();
-		$frm.find("[name='sShowTypeCd']").remove();
-		$frm.find("[name='sNationCd']").remove();
-		$frm.find("[name='chosung']").val("");
-		$frm.find("input[type=checkbox]").prop("checked",true);
-		$(".list_idx").children().removeClass("on");
-		$("#sPrdtYearS").next().find(".slt_coverInner").text("--전체--");
-		$("#sPrdtYearS").val("");
-		$("#sPrdtYearE").next().find(".slt_coverInner").text("--전체--");
-		$("#sPrdtYearE").val("");
-		$("#useYn").next().find(".slt_coverInner").text("--전체--");
-		$("#useYn").val("");
-
-	}
-
-	//등급검색 추가
-	function fn_searchGrade(tObj){
-		$tObj = $(tObj);
-		var opts = {
-		          'center' : false ,//가운데 정렬 아님
-		  		  'modal'  : true ,
-		          'searchname'  : $tObj, //조회 조건, 이 컴포넌트 아래 위치
-		  		  'frmTy'  : 'tcode:2300000000', //코드성 조회
-		  		  'height': '450',
-		  		  'width': '900',
-		  		  'seldata':$tObj.siblings("[name='sGradeCd']").map(function(){return $(this).val();}),
-		  		  'hideRep':true,
-		  		  onComplete: function(data){
-		  			$tObj.val("");
-					$tObj.siblings("input[name='sGradeCd']").remove();
-		  			for(var i=0; i<data.length; i++){
-						  if(i!=0){
-				  				$tObj.val($tObj.val()+",");
-						  }
-		  				$tObj.val($tObj.val()+data[i].korNm);
-				  		var	addStr = "<input type='hidden' name='sGradeCd' value='"+data[i].fullCd+"'/>";
-				  		$(addStr).insertBefore($tObj);
-		  			}
-		           }
-		      	};
-				$tObj.layerPopup(opts);
-	}
-	// 상영타입 검색추가
-	function fn_searchScrn(tObj){
-		$tObj = $(tObj);
-		var opts = {
-		          'center' : false ,//가운데 정렬 아님
-		  		  'modal'  : true ,
-		          'searchname'  : $tObj, //조회 조건, 이 컴포넌트 아래 위치
-		  		  'frmTy'  : 'tcode:5010000000', //코드성 조회
-		  		  'height': '450',
-		  		  'width': '750',
-		  		  'seldata':$tObj.siblings("[name='sShowTypeCd']").map(function(){return $(this).val();}),
-		  		  'hideRep':true,
-		  		  onComplete: function(data){
-		  			$tObj.val("");
-					$tObj.siblings("input[name='sShowTypeCd']").remove();
-		  			for(var i=0; i<data.length; i++){
-		  				if(i!=0){
-		  					$tObj.val($tObj.val()+",");
-		  				}
-		  				$tObj.val($tObj.val()+data[i].korNm);
-				  		var	addStr = "<input type='hidden' name='sShowTypeCd' value='"+data[i].fullCd+"'/>";
-				  		$(addStr).insertBefore($tObj);
-		  			}
-		           }
-		      	};
-				$tObj.layerPopup(opts);
-	}
-	function btn_more_close(type) {
-		if (type == "more") {
-			$("input[name='searchOpen']").val("Y");
-			$(".drop  *").attr("disabled",false);
-		} else if (type == "close") {
-			$("input[name='searchOpen']").val("N");
-		}
-	}
-	function fn_chkDataRange(obj, type) {
-		//날짜 형식 및 길이 유효성 체크
-		if(!gfn_IsValidateYMD($(obj).val())) return;
-
-		//직접입력한 경우 (yyyy-mm-dd 형식으로 변경)
-		if($(obj).val().length == 8){
-			$(obj).val($(obj).val().substring(0,4) + "-" + $(obj).val().substring(4,6) + "-" + $(obj).val().substring(6,8));
-		}
-
-		if(type == "START"){
-
-			$("#tmpDate").datepicker("setDate",$("#cal_start").datepicker("getDate"));
-			$("#tmpDate").datepicker("setDate","c+6d");
-			if($("#cal_start").datepicker("getDate") > $("#cal_end").datepicker("getDate")){
-				$("#cal_end").datepicker("setDate", $("#tmpDate").datepicker("getDate"));
-			}
-			/* else if($("#tmpDate").datepicker("getDate") < $("#cal_end").datepicker("getDate") ){
-				$("#cal_end").datepicker("setDate", $(obj).datepicker("getDate"));
-				$("#cal_end").datepicker("setDate", "c+6d");
-			} */
-		}
-		else{
-
-			$("#tmpDate").datepicker("setDate",$("#cal_end").datepicker("getDate"));
-			$("#tmpDate").datepicker("setDate","c-6d");
-			if($("#cal_start").datepicker("getDate") > $("#cal_end").datepicker("getDate")){
-				$("#cal_start").datepicker("setDate", $("#tmpDate").datepicker("getDate"));
-			}
-			/* else if($("#tmpDate").datepicker("getDate") > $("#cal_start").datepicker("getDate") ){
-				$("#cal_start").datepicker("setDate", $(obj).datepicker("getDate"));
-				$("#cal_start").datepicker("setDate", "c-6d");
-			} */
-		}
-	}
+/* optional: 스크롤바 스타일 (브라우저별 적용) */
+.code-search-dialog .ui-dialog-content::-webkit-scrollbar {
+  width: 8px;
+}
+.code-search-dialog .ui-dialog-content::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
 
 
 
 
-
-
-
-
-
-
-
-
-    </script>
+    </style>
 </head>
 <body>
 <div id="content">
@@ -401,7 +111,7 @@
 
     <!-- 검색 폼 -->
     <div class="f_sch">
-        <form id="searchForm" action="searchMovieList.do" method="post">
+        <form id="searchForm" name="searchForm" action="searchMovieList.do" method="post">
             <input type="hidden" name="CSRFToken" value="token">
             <input type="hidden" name="curPage" value="1">
             <input type="hidden" name="searchType" value="" autocomplete="off">
@@ -934,11 +644,11 @@
                     <div style="line-height: 27px;margin-right: 0px;float: left;">
                         <input type="hidden" name="sMultiChk" autocomplete="off" value="YYY">
                         <input type="checkbox" name="sNomal" id="sNomal" value="Y" class="chk_comm" title="선택"
-                               autocomplete="off"><label for="sNomal">일반영화 &nbsp;&nbsp;</label>
+                               autocomplete="off" checked><label for="sNomal">일반영화 &nbsp;&nbsp;</label>
                         <input type="checkbox" name="sMulti" id="sMulti" value="Y" class="chk_comm" title="선택"
-                               autocomplete="off"><label for="sMulti">예술영화 &nbsp;&nbsp;</label>
+                               autocomplete="off" checked><label for="sMulti">예술영화 &nbsp;&nbsp;</label>
                         <input type="checkbox" name="sIndie" id="sIndie" value="Y" class="chk_comm" title="선택"
-                               autocomplete="off"><label for="sIndie">독립영화</label>
+                               autocomplete="off" checked><label for="sIndie">독립영화</label>
                     </div>
                 </div>
                 <div class="item" style="display:none;">
@@ -955,7 +665,7 @@
                 <div class="item item_idx">
                     <strong class="dot01">영화명 인덱싱</strong>
                     <ul class="list_idx">
-                        <li class="on"><a href="javascript:fn_chosung_search('ㄱ');">ㄱ</a></li>
+                        <li><a href="javascript:fn_chosung_search('ㄱ');">ㄱ</a></li>
                         <li><a href="javascript:fn_chosung_search('ㄴ');">ㄴ</a></li>
                         <li><a href="javascript:fn_chosung_search('ㄷ');">ㄷ</a></li>
                         <li><a href="javascript:fn_chosung_search('ㄹ');">ㄹ</a></li>
@@ -997,17 +707,46 @@
                         <li><a href="javascript:fn_chosung_search('X');">X</a></li>
                         <li><a href="javascript:fn_chosung_search('Y');">Y</a></li>
                         <li><a href="javascript:fn_chosung_search('Z');">Z</a></li>
-                        <input type="hidden" name="chosung" value="ㄱ">
-                        <input type="hidden" name="searchOpen" value="Y">
                     </ul>
                 </div>
             </div>
         </form>
 
         <!-- 더보기 / 닫기 -->
-        <div class="more open">
+        <div class="more">
             <a href="javascript:;" class="btn_more" onclick="btn_more_close('more');">더보기<span class="ico_comm"></span></a>
             <a href="javascript:;" class="btn_close" onclick="btn_more_close('close');">닫기</a>
+        </div>
+    </div>
+
+
+    <!-- 팝업 -->
+    <!-- (body 어딘가) -->
+    <div id="layerPopup" style="display:none;">
+        <div style="padding:16px;">
+            <!-- 전체 선택 -->
+            <label style="display:block; margin-bottom:8px;">
+                <input type="checkbox" id="chkAllChkBox"> 전체 선택
+            </label>
+            <hr style="border:0;border-top:1px solid #ccc;margin:8px 0 12px;">
+            <!-- 옵션 테이블 -->
+            <table id="popupOptions" style="width:100%;border-collapse:collapse;">
+                <colgroup>
+                    <col style="width:38px;">
+                    <col style="width:109px;">
+                    <col style="width:38px;">
+                    <col style="width:109px;">
+                </colgroup>
+                <thead style="background:#f8f8f8;">
+                <tr>
+                    <th>선택</th>
+                    <th>항목</th>
+                    <th>선택</th>
+                    <th>항목</th>
+                </tr>
+                </thead>
+                <tbody><!-- JS로 채워짐 --></tbody>
+            </table>
         </div>
     </div>
 
@@ -1016,55 +755,56 @@
         <div class="hd_rst">
             <span class="total">총 <em class="fwb">111,856</em>건</span>
             <div class="fr">
-                <select class="slt" name="sOrderBy" id="sOrderBy">
-                    <option value="1">최신업데이트순</option>
-                    <option value="2">제작연도순</option>
-                    <option value="3">영화명순(ㄱ~Z)</option>
-                    <option value="4">개봉일순</option>
-                </select>
+                <div class="slt_comm">
+                    <select title="검색 정렬 옵션" class="slt" name="sOrderBy" id="sOrderBy">
+                        <option value="1">최신업데이트순</option>
+                        <option value="2">제작연도순</option>
+                        <option value="3">영화명순(ㄱ~Z)</option>
+                        <option value="4">개봉일순</option>
+                    </select>
+                </div>
             </div>
         </div>
-        <table class="tbl_comm">
-            <colgroup>
-                <col width="15%">
-                <col width="15%">
-                <col width="10%">
-                <col width="6%">
-                <col width="6%">
-                <col width="6%">
-                <col width="6%">
-                <col width="6%">
-                <col width="15%">
-                <col width="15%">
-            </colgroup>
-            <thead>
-            <tr>
-                <th>영화명</th>
-                <th>영화명(영문)</th>
-                <th>영화코드</th>
-                <th>제작연도</th>
-                <th>제작국가</th>
-                <th>유형</th>
-                <th>장르</th>
-                <th>제작상태</th>
-                <th>감독</th>
-                <th>제작사</th>
-            </tr>
-            </thead>
-            <tbody>
-            <!-- 여기에 AJAX로 결과 채움 -->
-            </tbody>
-        </table>
-        <div class="paging">
-            <ul class="list_page">
-                <li><a href="javascript:goPage(1)" class="on">1</a></li>
-                <li><a href="javascript:goPage(2)">2</a></li>
-                <!-- … -->
-            </ul>
-            <a href="javascript:goPage(2)" class="btn next">다음</a>
-            <a href="javascript:goPage(11186)" class="btn last">마지막</a>
-        </div>
     </div>
+    <table class="tbl_comm">
+        <colgroup>
+            <col width="15%">
+            <col width="15%">
+            <col width="10%">
+            <col width="6%">
+            <col width="6%">
+            <col width="6%">
+            <col width="6%">
+            <col width="6%">
+            <col width="15%">
+            <col width="15%">
+        </colgroup>
+        <thead>
+        <tr>
+            <th>영화명</th>
+            <th>영화명(영문)</th>
+            <th>영화코드</th>
+            <th>제작연도</th>
+            <th>제작국가</th>
+            <th>유형</th>
+            <th>장르</th>
+            <th>제작상태</th>
+            <th>감독</th>
+            <th>제작사</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 여기에 AJAX로 결과 채움 -->
+        </tbody>
+    </table>
+     <!-- 페이징 -->
+    <form id="pagingForm" name="pagingForm" method="post">
+      <!-- 현재 페이지 저장용 히든 필드 -->
+      <input type="hidden" name="curPage" value="1">
+      <!-- 스크립트에서 아래 .paging 내부를 채웁니다 -->
+      <div class="paging"></div>
+    </form>
+
 </div>
 
 

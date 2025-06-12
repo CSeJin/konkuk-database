@@ -90,14 +90,15 @@ def search_movie_list():
     if order_by == '1':
         order_clause = "mi.movie_id"  # 최신업데이트순
     elif order_by == '2':
-        order_clause = "mi.year DESC"  # 제작연도순 (내림차순)
+        order_clause = "mi.year DESC"      # 제작연도순 내림차순
     elif order_by == '3':
-        order_clause = "mi.title_kr ASC"  # 영화명순 (ㄱ~Z)
+        order_clause = "mi.title_kr ASC"   # 영화명순(ㄱ~Z)
     elif order_by == '4':
-        order_clause = "mi.year DESC"  # 개봉일자 컬럼이 없으면 제작연도순으로 대체
+        order_clause = "mi.year DESC"      # 개봉일순 컬럼 없으면 제작연도순 대체
     else:
         order_clause = "mi.movie_id"
 
+    # 기본 SELECT 절
     search_select = """
     SELECT
         mi.movie_id, mi.title_kr, mi.title_en, mi.year, mi.type, mi.status,
@@ -105,7 +106,9 @@ def search_movie_list():
         GROUP_CONCAT(DISTINCT g.genre ORDER BY g.genre SEPARATOR ', ') AS genres,
         GROUP_CONCAT(DISTINCT d.director ORDER BY d.director SEPARATOR ', ') AS director,
         GROUP_CONCAT(DISTINCT p.production ORDER BY p.production SEPARATOR ', ') AS production
-        """
+    """
+
+    # FROM 및 JOIN 절
     base_sql = """
     FROM movie_info mi
     LEFT JOIN movie_country mc ON mi.movie_id = mc.movie_id
@@ -118,46 +121,46 @@ def search_movie_list():
     LEFT JOIN production p ON mp.production_id = p.production_id
     """
 
-    # 조건 추가
+    # 검색 조건 생성
     conds, params = _build_conditions()
+    # WHERE 절 분기: 조건 없으면 단순 카운트용으로 분리
     if conds:
-        base_sql += " WHERE " + " AND ".join(conds)
+        where_clause = " WHERE " + " AND ".join(conds)
+    else:
+        where_clause = ""
 
-    # tuple count용 query(limit x)
-    count_sql = "select count(DISTINCT mi.movie_id) " + base_sql
+    # 전체 개수(count) 쿼리
+    if not conds:
+        # 조건 없을 때는 movie_info 만 단순 카운트
+        count_sql = "SELECT COUNT(*) AS cnt FROM movie_info"
+        count_params = []
+    else:
+        # 조건 있을 때는 조인 후 DISTINCT 카운트
+        count_sql = "SELECT COUNT(DISTINCT mi.movie_id) AS cnt " + base_sql + where_clause
+        count_params = params
 
-    # 조회용 쿼리: GROUP BY + LIMIT
-    full_sql = base_sql + f" GROUP BY mi.movie_id order by {order_clause} limit {limit} offset {offset}"
-    search_sql = search_select + full_sql
+    # 페이지 조회용 쿼리 (그룹바이 + 정렬 + 페이징)
+    full_sql = (
+        search_select
+      + base_sql
+      + where_clause
+      + f" GROUP BY mi.movie_id ORDER BY {order_clause} LIMIT %s OFFSET %s"
+    )
+    query_params = params + [limit, offset]
 
-    # 실행
-    # 조회
+    # DB 실행
     conn, cur = open_db()
-    cur.execute(search_sql, params)
+    # 1) 결과 목록
+    cur.execute(full_sql, query_params)
     rows = cur.fetchall()
 
-    # 튜플개수
-    cur.execute(count_sql, params)
-    row = cur.fetchone()
-    total_count = list(row.values())[0] if row else 0
+    # 2) 전체 개수
+    cur.execute(count_sql, count_params)
+    total_count = cur.fetchone()['cnt']
     close_db(conn, cur)
 
-    # 결과 반환
-    result = {
-        'total': total_count,
-        'rows': rows
-    }
-    return jsonify(result)
-
-
-@app.route('/movies', methods=['GET'])
-def get_all_movies():
-    conn, cur = open_db()
-    cur.execute("SELECT * FROM movie_info")
-    rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
-    close_db(conn, cur)
-    return jsonify([dict(zip(cols, r)) for r in rows])
+    # JSON 반환
+    return jsonify({'total': total_count, 'rows': rows})
 
 
 if __name__ == '__main__':

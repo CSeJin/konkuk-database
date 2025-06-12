@@ -289,8 +289,7 @@ function commSearchAjax(){
       $(".tbl_comm tbody").html(html);
       $(".total em").text(total);
        console.log("✅ data 타입:", typeof data);
-console.log("✅ data 배열 길이:", data.length);
-console.log("✅ data[0] 내용:", data[0]);
+       console.log(data)
 
 
       // 페이지 블럭 계산

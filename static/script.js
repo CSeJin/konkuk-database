@@ -251,18 +251,16 @@ function commSearchAjax(){
     },
     success(data){
 
-      const total = data.length;
+      const total = data.total;
+      const rows = data.rows;
       const page = +$("[name=curPage]").val() || 1;
       const pages = Math.ceil(total / PER_PAGE);
-      const slice = data.slice((page - 1) * PER_PAGE, page * PER_PAGE);
-      console.log("👉 받은 데이터 구조 확인", data[0]);
-
-    console.log("🟢 첫 번째 데이터", slice[0]);
-    console.log("✅ slice[0]", JSON.stringify(slice[0], null, 2));
+      console.log("✅ 받은 total:", total);
+      console.log("받은 데이터", rows)
 
 
 
-      let html = slice.map(m => `
+      let html = rows.map(m => `
   <tr>
     <td>${m.title_kr || ''}</td>
     <td>${m.title_en || ''}</td>

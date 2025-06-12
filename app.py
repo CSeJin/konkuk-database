@@ -79,13 +79,21 @@ def _build_conditions():
 
 @app.route('/movies/searchMovieList', methods=['GET'])
 def search_movie_list():
-    sql = """
-    SELECT 
+
+    # 페이징용 변수
+    page_count = int(request.args.get('curPage', 1))
+    offset = 10 * (page_count - 1)
+    limit = 10
+
+    search_select = """
+    SELECT
         mi.movie_id, mi.title_kr, mi.title_en, mi.year, mi.type, mi.status,
         GROUP_CONCAT(DISTINCT c.country ORDER BY c.country SEPARATOR ', ') AS nation_name,
         GROUP_CONCAT(DISTINCT g.genre ORDER BY g.genre SEPARATOR ', ') AS genres,
         GROUP_CONCAT(DISTINCT d.director ORDER BY d.director SEPARATOR ', ') AS director,
         GROUP_CONCAT(DISTINCT p.production ORDER BY p.production SEPARATOR ', ') AS production
+        """
+    base_sql = """
     FROM movie_info mi
     LEFT JOIN movie_country mc ON mi.movie_id = mc.movie_id
     LEFT JOIN country c ON mc.country_id = c.country_id
@@ -100,24 +108,32 @@ def search_movie_list():
     # 조건 추가
     conds, params = _build_conditions()
     if conds:
-        sql += " WHERE " + " AND ".join(conds)
+        base_sql += " WHERE " + " AND ".join(conds)
 
-    # 그룹핑
-    sql += " GROUP BY mi.movie_id"
+    # tuple count용 query(limit x)
+    count_sql = "select count(DISTINCT mi.movie_id) " + base_sql
+
+    # 조회용 쿼리: GROUP BY + LIMIT
+    full_sql = base_sql + f" GROUP BY mi.movie_id limit {limit} offset {offset}"
+    search_sql = search_select + full_sql
 
     # 실행
+    # 조회
     conn, cur = open_db()
-    cur.execute(sql, params)
+    cur.execute(search_sql, params)
     rows = cur.fetchall()
-    cols = [d[0] for d in cur.description]
+
+    # 튜플개수
+    cur.execute(count_sql, params)
+    row = cur.fetchone()
+    total_count = list(row.values())[0] if row else 0
     close_db(conn, cur)
 
     # 결과 반환
-    result = rows
-    # result = [dict(zip(cols, r)) for r in rows]
-    # print("[rows]", rows[:3])
-    # print("[cols]", cols)
-    # print(result)
+    result = {
+        'total': total_count,
+        'rows': rows
+    }
     return jsonify(result)
 
 

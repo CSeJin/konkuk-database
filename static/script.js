@@ -149,7 +149,9 @@ $(function(){
 
   // 정렬 즉시 반영
   $("[name=sOrderBy]").on("change", function(){
-    fn_changeOrder(this);
+    $("[name=curPage]").val(1);
+    $("#searchForm").find("input[name=sOrderBy").val($(this).val());
+    commSearchAjax();
   });
 
   // 초성 인덱싱
@@ -187,6 +189,14 @@ function renderOptions(arr){
       </tr>
     `);
   }
+}
+
+function fn_searchList(){
+  const $f = $("#searchForm");
+  $f.find("[name=curPage]").val(1);
+  // name=searchOpen 등 기존 로직…
+  // 검색 호출
+  commSearchAjax();
 }
 
 function fn_searchList(){
@@ -230,10 +240,6 @@ function fn_searchReset() {
 }
 
 
-function fn_changeOrder(sel){
-  $("[name=sOrderBy]").val($(sel).val());
-  fn_searchList();
-}
 
 function goPage(page){
   $("[name=curPage]").val(page);

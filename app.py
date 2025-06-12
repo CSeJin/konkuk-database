@@ -85,6 +85,19 @@ def search_movie_list():
     offset = 10 * (page_count - 1)
     limit = 10
 
+    # 정렬 옵션
+    order_by = request.args.get('sOrderBy', '1')
+    if order_by == '1':
+        order_clause = "mi.movie_id"  # 최신업데이트순
+    elif order_by == '2':
+        order_clause = "mi.year DESC"  # 제작연도순 (내림차순)
+    elif order_by == '3':
+        order_clause = "mi.title_kr ASC"  # 영화명순 (ㄱ~Z)
+    elif order_by == '4':
+        order_clause = "mi.year DESC"  # 개봉일자 컬럼이 없으면 제작연도순으로 대체
+    else:
+        order_clause = "mi.movie_id"
+
     search_select = """
     SELECT
         mi.movie_id, mi.title_kr, mi.title_en, mi.year, mi.type, mi.status,
@@ -114,7 +127,7 @@ def search_movie_list():
     count_sql = "select count(DISTINCT mi.movie_id) " + base_sql
 
     # 조회용 쿼리: GROUP BY + LIMIT
-    full_sql = base_sql + f" GROUP BY mi.movie_id limit {limit} offset {offset}"
+    full_sql = base_sql + f" GROUP BY mi.movie_id order by {order_clause} limit {limit} offset {offset}"
     search_sql = search_select + full_sql
 
     # 실행

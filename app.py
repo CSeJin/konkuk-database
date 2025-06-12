@@ -64,11 +64,15 @@ def _build_conditions():
         }
         if idx in chosung_map:
             start, end = chosung_map[idx]
-            conds.append("mi.title_kr >= %s AND mi.title_kr < %s")
+            conds.append("LEFT(mi.title_kr, 1) >= %s AND LEFT(mi.title_kr, 1) < %s")
             params += [start, end]
         elif idx.isalpha():
             conds.append("mi.title_en LIKE %s")
             params.append(f"{idx.upper()}%")
+
+    print("chosung idx:", idx)
+    print("conds:", conds)
+    print("params:", params)
 
     return conds, params
 

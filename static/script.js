@@ -236,7 +236,7 @@ function fn_searchReset() {
   $("#sOrderBy").val("1"); // 정렬 기본값 최신순
 
   // 5. 다시 전체 리스트 조회
-  fn_searchList();
+  //fn_searchList();
 }
 
 

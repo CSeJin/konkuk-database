@@ -1,0 +1,16 @@
+-- movie_info 검색·정렬용 인덱스
+CREATE INDEX idx_movie_info_year    ON movie_info(year);
+CREATE INDEX idx_movie_info_titlekr ON movie_info(title_kr);
+CREATE INDEX idx_movie_info_type    ON movie_info(type);
+CREATE INDEX idx_movie_info_status  ON movie_info(status);
+
+-- 조인 성능을 위한 복합 인덱스
+CREATE INDEX idx_mc_movie_country    ON movie_country(movie_id, country_id);
+CREATE INDEX idx_mg_movie_genre      ON movie_genre(movie_id, genre_id);
+CREATE INDEX idx_md_movie_director   ON movie_director(movie_id, director_id);
+CREATE INDEX idx_mp_movie_production ON movie_production(movie_id, production_id);
+
+-- lookup 테이블 검색용 인덱스
+CREATE INDEX idx_country_country   ON country(country);
+CREATE INDEX idx_genre_genre       ON genre(genre);
+CREATE INDEX idx_director_director ON director(director);

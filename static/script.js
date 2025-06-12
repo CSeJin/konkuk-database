@@ -207,6 +207,29 @@ function fn_searchList(){
   commSearchAjax();
 }
 
+function fn_searchReset() {
+  const $f = $("#searchForm");
+
+  // 1. 전체 입력 초기화
+  $f[0].reset();
+
+  // 2. 영화구분 체크박스 다시 체크 (기본값 YYY)
+  $("[name=sNomal], [name=sMulti], [name=sIndie]").prop("checked", true);
+  $("[name=sMultiChk]").val("YYY");
+
+  // 3. 선택된 영화명 인덱싱 초기화
+  $("[name=chosung]").val("");              // 히든 필드 초기화
+  $(".list_idx li").removeClass("on");      // UI 표시 초기화
+
+  // 4. 드롭다운 값 초기화
+  $("#sPrdtYearS, #sPrdtYearE").val("");
+  $("#sOrderBy").val("1"); // 정렬 기본값 최신순
+
+  // 5. 다시 전체 리스트 조회
+  fn_searchList();
+}
+
+
 function fn_changeOrder(sel){
   $("[name=sOrderBy]").val($(sel).val());
   fn_searchList();
